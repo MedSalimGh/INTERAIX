@@ -3,10 +3,11 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import type { CreateAssistantDTO } from "@vapi-ai/web/dist/api";
 
 import { cn } from "@/lib/utils";
 import { vapi } from "@/lib/vapi.sdk";
-import { interviewer } from "@/constants";
+import { interviewer, voiceIds } from "@/constants";
 import { createFeedback, createInterview } from "@/lib/actions/general.action";
 
 enum CallStatus {
@@ -107,11 +108,53 @@ const Agent = ({
 
   useEffect(() => {
     if (messages.length > 0) {
-      setLastMessage(messages[messages.length - 1].content);
+      const lastMsg = messages[messages.length - 1];
+      setLastMessage(lastMsg.content);
+
+      // Auto-disconnect logic
+      if (callStatus === CallStatus.ACTIVE) {
+        const lowerContent = lastMsg.content.toLowerCase();
+        
+        // If assistant says goodbye, end call after a short delay to let audio finish
+        if (
+          lastMsg.role === "assistant" && 
+          lowerContent.includes("goodbye")
+        ) {
+          setTimeout(() => {
+            handleDisconnect();
+          }, 3000);
+        }
+
+        // If user says bye, we expect the assistant to reply with goodbye, 
+        // but we can also set a failsafe timeout ensuring it hangs up if AI doesn't.
+        if (
+          lastMsg.role === "user" && 
+          (lowerContent.includes("bye") || 
+           lowerContent.includes("goodbye") || 
+           lowerContent.includes("end call"))
+        ) {
+           // Optional: You could force hangup here, but better to let AI reply.
+           // However, user specifically asked "when i say bye... i want agent to end call"
+           // So let's give the AI 4 seconds to reply "Goodbye" and then force quit if it hasn't.
+           setTimeout(() => {
+             if (callStatus === CallStatus.ACTIVE) { // Check if still active
+               handleDisconnect();
+             }
+           }, 4000);
+        }
+      }
     }
 
     const handleCreateInterview = async (messages: SavedMessage[]) => {
       console.log("handleCreateInterview");
+
+      const hasUserInteraction = messages.some((msg) => msg.role === "user");
+
+      if (!hasUserInteraction) {
+        console.log("No user interaction, skipping interview creation");
+        router.push("/");
+        return;
+      }
 
       const { success, interviewId: id } = await createInterview({
         userId: userId!,
@@ -182,12 +225,22 @@ const Agent = ({
             .join("\n");
         }
 
+        // Randomize Voice
+        const randomVoiceId = voiceIds[Math.floor(Math.random() * voiceIds.length)];
+        const interviewerConfig = {
+          ...interviewer,
+          voice: {
+            ...interviewer.voice,
+            voiceId: randomVoiceId,
+          },
+        } as CreateAssistantDTO;
+
         console.log("Starting interview call with config:", { 
-          interviewer, 
+          interviewer: interviewerConfig, 
           questions: formattedQuestions 
         });
 
-        await vapi.start(interviewer, {
+        await vapi.start(interviewerConfig, {
           variableValues: {
             questions: formattedQuestions,
           },
@@ -222,13 +275,13 @@ const Agent = ({
             <Image
               src="/ai-avatar.png"
               alt="profile-image"
-              width={95}
-              height={95}
-              className="object-cover"
+              width={150}
+              height={150}
+              className="object-cover size-[150px]"
             />
             {isSpeaking && <span className="animate-speak" />}
           </div>
-          <h3>AI Interviewer</h3>
+          <h3>INTER X </h3>
         </div>
 
         {/* User Profile Card */}

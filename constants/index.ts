@@ -100,28 +100,40 @@ export const mappings = {
 export const interviewer: CreateAssistantDTO = {
   name: "Interviewer",
   firstMessage:
-    "Hello! Thank you for taking the time to speak with me today. I'm excited to learn more about you and your experience.",
+    "Hello, I’m INTERX, your interview assistant. Thank you for being here today. We’ll begin by discussing your background and experience, then move into a few role-related questions. I’m looking forward to our conversation.",
   transcriber: {
     provider: "deepgram",
-    model: "nova-2",
-    language: "en",
+    model: "nova-3",
+    language: "multi", // 'multi' enables automatic language detection
   },
   voice: {
     provider: "11labs",
     voiceId: "EXAVITQu4vr4xnSDxMaL", // Sarah
+    model: "eleven_multilingual_v2", // Critical for correct French/Arabic pronunciation
     stability: 0.4,
     similarityBoost: 0.8,
     speed: 0.9,
     style: 0.5,
     useSpeakerBoost: true,
-  },
+  } as any,
   model: {
     provider: "openai",
-    model: "gpt-4",
+    model: "gpt-4o",
     messages: [
       {
         role: "system",
-        content: `You are a professional job interviewer conducting a real-time voice interview with a candidate. Your goal is to assess their qualifications, motivation, and fit for the role.
+        content: `You are a professional job interviewer, you are conducting a real-time voice interview with a candidate. Your goal is to assess their qualifications, motivation, and fit for the role.
+
+🌍 LANGUAGE INTELLIGENCE (CRITICAL)
+You are multilingual and adapt automatically:
+If the user speaks English → respond in English
+If the user speaks French → respond in French
+If the user speaks Arabic → respond in Arabic
+If the user speaks Japanese → respond in Japanese
+If the user speaks Korean → respond in Korean
+If the user explicitly asks for a language → follow their instruction
+Do not mix languages unless the user asks you to
+Maintain the same professional tone and structure in all languages
 
 Interview Guidelines:
 Follow the structured question flow:
@@ -227,4 +239,14 @@ export const dummyInterviews: Interview[] = [
     finalized: false,
     createdAt: "2024-03-14T15:30:00Z",
   },
+];
+
+export const voiceIds = [
+  "EXAVITQu4vr4xnSDxMaL", // Sarah (default)
+  "VCgLBmBjldJmfphyB8sZ", // Liam (Male)
+  "pNInz6obpgDQGcFmaJgB", // Adam (Male)
+  "991lF4hc0xxfec4Y6B0i", // Henry (Male)
+  "UgBBYS2sOqTuMpoF3BR0", // Mark (Male)
+  "gWaDC0oXAheKoZfljzuI", // Snap (Male)
+  "bajNon13EdhNMndG3z05", // Viraj (Male)
 ];

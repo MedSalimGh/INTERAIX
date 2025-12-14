@@ -316,10 +316,12 @@ export async function createInterview(params: {
             "techstack": string[], // e.g., ["React", "TypeScript"]
             "level": string, // e.g., "Junior", "Senior", "Mid-level"
             "type": string, // e.g., "Technical", "Behavioral", "System Design"
-            "questions": string[] // The list of questions generated or discussed for the interview
+            "questions": string[], // The list of questions generated or discussed for the interview
+            "isValid": boolean // true if the user provided sufficient context/subject, false if conversation was empty, just greetings, or lacked substance.
           }
 
           If specific details weren't explicitly mentioned, infer reasonable defaults based on the context.
+          However, if the conversation implies the user did not actually set up an interview or just ended the call, set "isValid" to false.
           `,
         },
         {
@@ -336,6 +338,13 @@ export async function createInterview(params: {
     });
 
     const object = JSON.parse(completion.choices[0]?.message?.content || "{}");
+    
+    // Check if the interview is valid based on context
+    if (object.isValid === false) {
+      console.log("Interview context invalid, not saving.");
+      return { success: false };
+    }
+
     const role = object.role || "General Interview";
 
     // Generate Pollinations URL
@@ -370,5 +379,44 @@ export async function createInterview(params: {
   } catch (error) {
     console.error("Error creating interview:", error);
     return { success: false };
+  }
+}
+
+export async function deleteInterview(params: {
+  interviewId: string;
+  userId: string;
+}) {
+  const { interviewId, userId } = params;
+
+  try {
+    // First, verify the interview exists and belongs to the user
+    const interviewDoc = await db.collection("interviews").doc(interviewId).get();
+    
+    if (!interviewDoc.exists) {
+      return { success: false, error: "Interview not found" };
+    }
+
+    const interviewData = interviewDoc.data();
+    if (interviewData?.userId !== userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // Delete the interview
+    await db.collection("interviews").doc(interviewId).delete();
+
+    // Optionally delete associated feedback
+    const feedbackSnapshot = await db
+      .collection("feedback")
+      .where("interviewId", "==", interviewId)
+      .where("userId", "==", userId)
+      .get();
+
+    const deletePromises = feedbackSnapshot.docs.map((doc) => doc.ref.delete());
+    await Promise.all(deletePromises);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting interview:", error);
+    return { success: false, error: "Failed to delete interview" };
   }
 }
