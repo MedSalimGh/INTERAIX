@@ -1,11 +1,12 @@
-import { initializeApp, getApps, cert } from "firebase-admin/app";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { getStorage } from "firebase-admin/storage";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 // Initialize Firebase Admin SDK
 function initFirebaseAdmin() {
   const apps = getApps();
+  let app;
 
   if (!apps.length) {
     const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -31,14 +32,28 @@ function initFirebaseAdmin() {
       console.warn("Private key format might be incorrect");
     }
 
+    // Fallback logic for bucket name
+    let storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.replace("gs://", "");
+    
+    if (!storageBucket || storageBucket === "undefined") {
+      // Default to standard Firebase bucket name format
+      storageBucket = `${projectId}.appspot.com`;
+      console.log(`No explicit bucket env var found. Defaulting to: ${storageBucket}`);
+    }
+
+    console.log("---------------------------------------------------");
+    console.log("FIREBASE ADMIN INIT DEBUG");
+    console.log("Using Storage Bucket:", storageBucket);
+    console.log("---------------------------------------------------");
+
     try {
-      initializeApp({
+      app = initializeApp({
         credential: cert({
           projectId,
           clientEmail,
           privateKey,
         }),
-        storageBucket: `${projectId}.firebasestorage.app`, // Infer bucket name from project ID
+        storageBucket: storageBucket,
       });
     } catch (error: any) {
       console.error("Firebase Admin initialization error:", error);
@@ -46,12 +61,14 @@ function initFirebaseAdmin() {
         `Failed to initialize Firebase Admin: ${error.message}. Please check your FIREBASE_PRIVATE_KEY format in .env.local`
       );
     }
+  } else {
+    app = apps[0]; // If already initialized, use the existing app
   }
 
   return {
-    auth: getAuth(),
-    db: getFirestore(),
-    storage: getStorage(),
+    auth: getAuth(app),
+    db: getFirestore(app),
+    storage: getStorage(app),
   };
 }
 

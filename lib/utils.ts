@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 
 
 
-export const getTechLogos = async (techArray: string[]) => {
+export const getTechLogos = (techArray: string[]) => {
   const logoURLs = techArray.map((tech) => {
     return {
       tech,
@@ -18,7 +18,7 @@ export const getTechLogos = async (techArray: string[]) => {
     };
   });
 
-  return Promise.resolve(logoURLs);
+  return logoURLs;
 };
 
 // Simple hash function to convert string to number

@@ -1,6 +1,7 @@
 "use server";
 
 import Groq from "groq-sdk";
+import { revalidatePath } from "next/cache";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -375,6 +376,16 @@ export async function createInterview(params: {
 
     await interviewRef.set(interview);
 
+    // Create Notification
+    await db.collection("users").doc(userId).collection("notifications").add({
+      title: "Interview Ready",
+      message: `Your mocked interview for ${role} is ready! Good luck.`,
+      type: "interview",
+      read: false,
+      createdAt: new Date(),
+    });
+
+    revalidatePath("/"); // Update dashboard
     return { success: true, interviewId: interviewRef.id };
   } catch (error) {
     console.error("Error creating interview:", error);
@@ -414,6 +425,7 @@ export async function deleteInterview(params: {
     const deletePromises = feedbackSnapshot.docs.map((doc) => doc.ref.delete());
     await Promise.all(deletePromises);
 
+    revalidatePath("/"); // Update dashboard
     return { success: true };
   } catch (error) {
     console.error("Error deleting interview:", error);

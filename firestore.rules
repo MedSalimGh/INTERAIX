@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User Profiles
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Notifications Subcollection
+      match /notifications/{notificationId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Interviews
+    match /interviews/{interviewId} {
+        // Allow create if authenticated and userId matches
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        // Allow read/update/delete if owner
+        allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // CVs (if stored as root collection, though plan said subcollection of users?)
+    // Checking implementation plan: "Create cvs Firestore collection (Now subcollection of users)"
+    // So usually /users/{userId}/cvs/{cvId}
+    
+    // Resume/CVs inside Users
+    match /users/{userId}/cvs/{cvId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

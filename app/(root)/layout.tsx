@@ -1,25 +1,10 @@
-import Link from "next/link";
-import Image from "next/image";
 import { ReactNode } from "react";
-import { redirect } from "next/navigation";
 
-import { isAuthenticated } from "@/lib/actions/auth.action";
-
-const Layout = async ({ children }: { children: ReactNode }) => {
-  const isUserAuthenticated = await isAuthenticated();
-  if (!isUserAuthenticated) redirect("/sign-in");
-
+const Layout = ({ children }: { children: ReactNode }) => {
   return (
-    <div className="root-layout">
-      <nav>
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.svg" alt="MockMate Logo" width={85} height={49} />
-          <h2 className="text-primary-100">IntervAIX</h2>
-        </Link>
-      </nav>
-
+    <main className="root-layout min-h-screen">
       {children}
-    </div>
+    </main>
   );
 };
 

@@ -37,6 +37,18 @@ interface User {
   name: string;
   email: string;
   id: string;
+  phoneNumber?: string;
+  interests?: string[];
+  role?: string;
+  profilePictureURL?: string;
+}
+
+interface UpdateUserProfileParams {
+  name?: string;
+  phoneNumber?: string;
+  interests?: string[];
+  role?: string;
+  profilePictureURL?: string;
 }
 
 interface InterviewCardProps {
@@ -56,6 +68,7 @@ interface AgentProps {
   feedbackId?: string;
   type: "generate" | "interview";
   questions?: string[];
+  profilePictureURL?: string;
 }
 
 interface RouteParams {
